@@ -25,6 +25,7 @@ import static com.ls.friendmatch.constant.UserConstant.USER_LOGIN_STATE;
  */
 @RestController
 @RequestMapping("/user")
+@CrossOrigin(origins = {"http://localhost:3000"})
 public class UserController {
 
     @Resource
@@ -113,7 +114,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/search")
-    public BaseResponse <List<User> > userLogin(String userName, HttpServletRequest request) {
+    public BaseResponse <List<User> > searchUser(String userName, HttpServletRequest request) {
 
         if (!isAdmin(request)){
             throw new BusinessException(ErrorCode.NULL_ERROR) ;
@@ -138,7 +139,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/delete")
-    public BaseResponse<Boolean> userLogin(@RequestBody long id, HttpServletRequest request) {
+    public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request) {
 
         if (!isAdmin(request)){
             throw new BusinessException(ErrorCode.NULL_ERROR) ;
