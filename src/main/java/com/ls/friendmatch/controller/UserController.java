@@ -94,6 +94,11 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 获取当前用户
+     * @param request
+     * @return
+     */
     @GetMapping("/current")
     public BaseResponse<User> getCurrentUser (HttpServletRequest request){
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
@@ -156,11 +161,42 @@ public class UserController {
      * @param request
      * @return
      */
-    private boolean isAdmin(HttpServletRequest request) {
+    public boolean isAdmin(HttpServletRequest request) {
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User user = (User) userObj;
         return user != null && user.getUserRole() == ADMIN_ROLE;
     }
+
+    @PostMapping("/update")
+    public BaseResponse<Integer> updateUser(@RequestBody User user, HttpServletRequest request) {
+        // 校验参数是否为空
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PRAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        int result = userService.updateUser(user, loginUser);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 查推荐接口
+     *
+     * @param request
+     * @return
+     */
+    @GetMapping("/recommend")
+    public BaseResponse <List<User> > recommendUsers( HttpServletRequest request) {
+
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+
+        List<User> userList = userService.list(queryWrapper) ;
+
+        List<User> userResultList =  userList.stream().map(user-> userService.getSafetyUser(user)).collect(Collectors.toList());
+
+        return ResultUtils.success(userResultList);
+    }
+
+
 
 
 }
