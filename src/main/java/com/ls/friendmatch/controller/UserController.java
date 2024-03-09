@@ -1,6 +1,8 @@
 package com.ls.friendmatch.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ls.friendmatch.Exception.BusinessException;
 import com.ls.friendmatch.common.BaseResponse;
 import com.ls.friendmatch.common.ErrorCode;
@@ -185,15 +187,17 @@ public class UserController {
      * @return
      */
     @GetMapping("/recommend")
-    public BaseResponse <List<User> > recommendUsers( HttpServletRequest request) {
+    public BaseResponse <Page<User> > recommendUsers( long pageSize,long pageNum ,HttpServletRequest request) {
 
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
 
-        List<User> userList = userService.list(queryWrapper) ;
+      //  List<User> userList = userService.list(queryWrapper) ;  //当前获取的数据量过大，需要使用分页
 
-        List<User> userResultList =  userList.stream().map(user-> userService.getSafetyUser(user)).collect(Collectors.toList());
+        Page<User> userList = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
 
-        return ResultUtils.success(userResultList);
+       // List<User> userResultList =  userList.stream().map(user-> userService.getSafetyUser(user)).collect(Collectors.toList());
+
+        return ResultUtils.success(userList);
     }
 
 
