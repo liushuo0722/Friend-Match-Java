@@ -11,12 +11,16 @@ import com.ls.friendmatch.model.domain.User;
 import com.ls.friendmatch.model.domain.request.UserLoginRequest;
 import com.ls.friendmatch.model.domain.request.UserRegisterRequest;
 import com.ls.friendmatch.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.ls.friendmatch.constant.UserConstant.ADMIN_ROLE;
@@ -28,10 +32,14 @@ import static com.ls.friendmatch.constant.UserConstant.USER_LOGIN_STATE;
 @RestController
 @RequestMapping("/user")
 @CrossOrigin(origins = {"http://localhost:3000"})
+@Slf4j
 public class UserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 用户注册
@@ -188,16 +196,25 @@ public class UserController {
      */
     @GetMapping("/recommend")
     public BaseResponse <Page<User> > recommendUsers( long pageSize,long pageNum ,HttpServletRequest request) {
-
+        User loginUser = userService.getLoginUser(request);
+        String redisKey = String.format("friendmatch:user:recommend:%s", loginUser.getId());
+        ValueOperations<String, Object> valueOperations = redisTemplate.opsForValue();
+        // 如果有缓存，直接读缓存
+        Page<User> userPage = (Page<User>) valueOperations.get(redisKey);
+        if (userPage != null) {
+            return ResultUtils.success(userPage);
+        }
+        // 无缓存，查数据库
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        userPage = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
+        // 写缓存
+        try {
+            valueOperations.set(redisKey, userPage, 30000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.error("redis set key error", e);
+        }
+        return ResultUtils.success(userPage);
 
-      //  List<User> userList = userService.list(queryWrapper) ;  //当前获取的数据量过大，需要使用分页
-
-        Page<User> userList = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
-
-       // List<User> userResultList =  userList.stream().map(user-> userService.getSafetyUser(user)).collect(Collectors.toList());
-
-        return ResultUtils.success(userList);
     }
 
 
